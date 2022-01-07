@@ -1,7 +1,7 @@
 <!--
  ~ The MIT License
  ~
- ~ Copyright (c) 2017-2018, Sam Gleske - https://github.com/samrocketman
+ ~ Copyright (c) 2017, CloudBees, Inc.
  ~
  ~ Permission is hereby granted, free of charge, to any person obtaining a copy
  ~ of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,9 @@
  ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  ~ THE SOFTWARE.
  -->
-<div>
-    Space-separated list of tag name patterns to consider.
-    You may use <code>*</code> as a wildcard; for example: <code>*-1.*</code>
-    to build only 1.0 tags from the maven release plugin.
-</div>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:entry title="${%Pull request origin branch regular expression}" field="prOriginRegex">
+    <f:textbox default=""/>
+  </f:entry>
+</j:jelly>

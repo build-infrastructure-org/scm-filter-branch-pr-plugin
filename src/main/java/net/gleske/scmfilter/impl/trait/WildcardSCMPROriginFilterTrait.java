@@ -25,8 +25,6 @@
 
 package net.gleske.scmfilter.impl.trait;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import java.util.regex.Pattern;
 import jenkins.scm.api.SCMHead;
@@ -44,101 +42,51 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * Decorates a {@link SCMSource} with a {@link SCMHeadPrefilter} that filters {@link SCMHead} instances based on
- * matching wildcard include/exclude rules.
+ * Decorates a {@link SCMSource} with a {@link SCMHeadPrefilter} that filters
+ * {@link SCMHead} instances based on matching wildcard include/exclude rules.
  *
  * @since 0.5
  */
-public class WildcardSCMOriginFilterTrait extends SCMSourceTrait {
+public class WildcardSCMPROriginFilterTrait extends SCMSourceTrait {
 
     /**
-     * The branch include rules.
+     * The PR include rules based on origin branch.
      */
-    @NonNull
-    private final String includes;
+    private final String prOriginIncludes;
 
     /**
-     * The branch exclude rules.
+     * The PR exclude rules based on origin branch.
      */
-    @NonNull
-    private final String excludes;
-
-    /**
-     * The tag include rules.
-     */
-    @NonNull
-    private final String tagIncludes;
-
-    /**
-     * The tag exclude rules.
-     */
-    @NonNull
-    private final String tagExcludes;
+    private final String prOriginExcludes;
 
     /**
      * Stapler constructor.
      *
-     * @param includes the branch include rules.
-     * @param excludes the branch exclude rules.
-     * @param tagIncludes the tag include rules.
-     * @param tagExcludes the tag exclude rules.
+     * @param prOriginIncludes the pull request include rules based on origin branch
+     * @param prOriginExcludes the pull request exclude rules based on origin branch
      */
     @DataBoundConstructor
-    public WildcardSCMOriginFilterTrait(@CheckForNull String includes, String excludes, String tagIncludes, String tagExcludes) {
-        this.includes = StringUtils.defaultIfBlank(includes, "*");
-        this.excludes = StringUtils.defaultIfBlank(excludes, "");
-        this.tagIncludes = StringUtils.defaultIfBlank(tagIncludes, "");
-        this.tagExcludes = StringUtils.defaultIfBlank(tagExcludes, "");
+    public WildcardSCMPROriginFilterTrait(String prOriginIncludes, String prOriginExcludes) {
+        this.prOriginIncludes = StringUtils.defaultIfBlank(prOriginIncludes, "");
+        this.prOriginExcludes = StringUtils.defaultIfBlank(prOriginExcludes, "");
     }
 
     /**
-     * Deprecated constructor kept around for compatibility and migration.
+     * Returns the pull request include rules based on origin branch.
      *
-     * @param includes the include rules.
-     * @param excludes the exclude rules.
+     * @return the pull request include rules.
      */
-    @Deprecated
-    public WildcardSCMOriginFilterTrait(@CheckForNull String includes, String excludes) {
-        this.includes = StringUtils.defaultIfBlank(includes, "*");
-        this.excludes = StringUtils.defaultIfBlank(excludes, "");
-        this.tagIncludes = "";
-        this.tagExcludes = "*";
+    public String getPrOriginIncludes() {
+        return prOriginIncludes;
     }
 
     /**
-     * Returns the branch include rules.
+     * Returns the pull request exclude rules based on origin branch.
      *
-     * @return the branch include rules.
+     * @return the pull request exclude rules.
      */
-    public String getIncludes() {
-        return includes;
-    }
-
-    /**
-     * Returns the branch exclude rules.
-     *
-     * @return the branch exclude rules.
-     */
-    public String getExcludes() {
-        return excludes;
-    }
-
-    /**
-     * Returns the tag include rules.
-     *
-     * @return the tag include rules.
-     */
-    public String getTagIncludes() {
-        return tagIncludes;
-    }
-
-    /**
-     * Returns the tag exclude rules.
-     *
-     * @return the tag exclude rules.
-     */
-    public String getTagExcludes() {
-        return tagExcludes;
+    public String getPrOriginExcludes() {
+        return prOriginExcludes;
     }
 
     /**
@@ -148,23 +96,15 @@ public class WildcardSCMOriginFilterTrait extends SCMSourceTrait {
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         context.withPrefilter(new SCMHeadPrefilter() {
             @Override
-            public boolean isExcluded(@NonNull SCMSource request, @NonNull SCMHead head) {
+            public boolean isExcluded(SCMSource request, SCMHead head) {
                 if (head instanceof ChangeRequestSCMHead2) {
-                    // change request
-                    String origin = ((ChangeRequestSCMHead2)head).getOriginName();
-                    return !Pattern.matches(getPattern(getIncludes()), origin)
-                         || Pattern.matches(getPattern(getExcludes()), origin);
+                    // change request originating from originName branches
+                    String originName = ((ChangeRequestSCMHead2) head).getOriginName();
+                    return !Pattern.matches(getPattern(getPrOriginIncludes()), originName)
+                            || Pattern.matches(getPattern(getPrOriginExcludes()), originName);
                 }
 
-                if(head instanceof TagSCMHead) {
-                    // tag
-                    return !Pattern.matches(getPattern(getTagIncludes()), head.getName())
-                         || Pattern.matches(getPattern(getTagExcludes()), head.getName());
-                } else {
-                    // branch
-                    return !Pattern.matches(getPattern(getIncludes()), head.getName())
-                         || Pattern.matches(getPattern(getExcludes()), head.getName());
-                }
+                return false;
             }
         });
     }
@@ -197,7 +137,7 @@ public class WildcardSCMOriginFilterTrait extends SCMSourceTrait {
     /**
      * Our descriptor.
      */
-    @Symbol("headWildcardFilterWithPRFromOrigin")
+    @Symbol("WildcardSCMPROriginFilter")
     @Extension
     @Selection
     public static class DescriptorImpl extends SCMSourceTraitDescriptor {
@@ -207,7 +147,7 @@ public class WildcardSCMOriginFilterTrait extends SCMSourceTrait {
          */
         @Override
         public String getDisplayName() {
-            return Messages.WildcardSCMOriginFilterTrait_DisplayName();
+            return Messages.WildcardSCMPROriginFilterTrait_DisplayName();
         }
     }
 }

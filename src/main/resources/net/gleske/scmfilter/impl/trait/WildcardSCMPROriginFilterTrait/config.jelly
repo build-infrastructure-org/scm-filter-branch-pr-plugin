@@ -21,7 +21,12 @@
  ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  ~ THE SOFTWARE.
  -->
-<div>
-    Branch name patterns to ignore even if matched by the includes list.
-    For example: <code>release</code>
-</div>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:entry title="${%PR Origin Include}" field="prOriginIncludes">
+    <f:textbox default=""/>
+  </f:entry>
+  <f:entry title="${%PR Origin Exclude}" field="prOriginExcludes">
+    <f:textbox default=""/>
+  </f:entry>
+</j:jelly>

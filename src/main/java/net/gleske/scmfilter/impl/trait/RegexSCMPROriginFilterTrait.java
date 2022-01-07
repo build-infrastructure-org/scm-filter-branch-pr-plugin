@@ -25,8 +25,6 @@
 
 package net.gleske.scmfilter.impl.trait;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.FormValidation;
 import java.util.regex.Pattern;
@@ -48,110 +46,55 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 /**
- * Decorates a {@link SCMSource} with a {@link SCMHeadPrefilter} that excludes {@link SCMHead} instances with names that
- * do not match a user supplied regular expression.
+ * Decorates a {@link SCMSource} with a {@link SCMHeadPrefilter} that excludes
+ * {@link SCMHead} instances with names that do not match a user supplied
+ * regular expression.
  *
  * @since 0.5
  */
-public class RegexSCMOriginFilterTrait extends SCMSourceTrait {
+public class RegexSCMPROriginFilterTrait extends SCMSourceTrait {
 
     /**
-     * The branch regular expression.
+     * The pull request origin branch regular expression.
      */
-    @NonNull
-    private final String regex;
+    private final String prOriginRegex;
 
     /**
-     * The tag regular expression.
+     * The compiled pull request origin branch {@link Pattern}.
      */
-    @NonNull
-    private final String tagRegex;
-
-    /**
-     * The compiled branch {@link Pattern}.
-     */
-    @CheckForNull
-    private transient Pattern pattern;
-
-    /**
-     * The compiled tag {@link Pattern}.
-     */
-    @CheckForNull
-    private transient Pattern tagPattern;
+    private transient Pattern prOriginPattern;
 
     /**
      * Stapler constructor.
      *
-     * @param regex the branch regular expression.
-     * @param tagRegex the tag regular expression.
+     * prOriginRegex The pull request origin branch regular expression
      */
     @DataBoundConstructor
-    public RegexSCMOriginFilterTrait(@NonNull String regex, @NonNull String tagRegex) {
-        pattern = Pattern.compile(regex);
-        this.regex = regex;
-        tagPattern = Pattern.compile(tagRegex);
-        this.tagRegex = tagRegex;
+    public RegexSCMPROriginFilterTrait(String prOriginRegex) {
+        prOriginPattern = Pattern.compile(prOriginRegex);
+        this.prOriginRegex = prOriginRegex;
     }
 
     /**
-     * Deprecated constructor kept around for compatibility and migration.
+     * Gets the pull request origin branch regular expression.
      *
-     * @param regex the regular expression.
+     * @return the pull request origin branch regular expression.
      */
-    @Deprecated
-    public RegexSCMOriginFilterTrait(@NonNull String regex) {
-        pattern = Pattern.compile(regex);
-        this.regex = regex;
-        tagPattern = Pattern.compile("(?!.*)");
-        this.tagRegex = "(?!.*)";
+    public String getPrOriginRegex() {
+        return prOriginRegex;
     }
 
     /**
-     * Gets the branch regular expression.
+     * Gets the compiled pull request origin branch pattern.
      *
-     * @return the branch regular expression.
+     * @return the compiled pull request origin branch pattern.
      */
-    @NonNull
-    public String getRegex() {
-        return regex;
-    }
-
-    /**
-     * Gets the tag regular expression.
-     *
-     * @return the tag regular expression.
-     */
-    @NonNull
-    public String getTagRegex() {
-        return tagRegex;
-    }
-
-    /**
-     * Gets the compiled branch {@link Pattern}.
-     *
-     * @return the compiled branch {@link Pattern}.
-     */
-    @NonNull
-    private Pattern getPattern() {
-        if (pattern == null) {
+    public Pattern getPrOriginPattern() {
+        if (prOriginPattern == null) {
             // idempotent
-            pattern = Pattern.compile(regex);
+            prOriginPattern = Pattern.compile(prOriginRegex);
         }
-        return pattern;
-    }
-
-    /**
-     * Gets the compiled tag {@link Pattern}.
-     *
-     * @return the compiled tag {@link Pattern}.
-     */
-    @NonNull
-    private Pattern getTagPattern() {
-        if (tagPattern == null) {
-            // idempotent
-            tagPattern = Pattern.compile(tagRegex);
-        }
-        return tagPattern;
+        return prOriginPattern;
     }
 
     /**
@@ -161,20 +104,14 @@ public class RegexSCMOriginFilterTrait extends SCMSourceTrait {
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         context.withPrefilter(new SCMHeadPrefilter() {
             @Override
-            public boolean isExcluded(@NonNull SCMSource source, @NonNull SCMHead head) {
+            public boolean isExcluded(SCMSource source, SCMHead head) {
                 if (head instanceof ChangeRequestSCMHead2) {
-                    // change request
-                    String origin = ((ChangeRequestSCMHead2)head).getOriginName();
-                    return !getPattern().matcher(origin).matches();
+                    // Change request originating from origin branches
+                    String origin = ((ChangeRequestSCMHead2) head).getOriginName();
+                    return !getPrOriginPattern().matcher(origin).matches();
                 }
 
-                if (head instanceof TagSCMHead) {
-                    // tag
-                    return !getTagPattern().matcher(head.getName()).matches();
-                } else {
-                    // branch
-                    return !getPattern().matcher(head.getName()).matches();
-                }
+                return false;
             }
         });
     }
@@ -182,7 +119,7 @@ public class RegexSCMOriginFilterTrait extends SCMSourceTrait {
     /**
      * Our descriptor.
      */
-    @Symbol("headRegexFilterWithPRFromOrigin")
+    @Symbol("RegexSCMPROriginFilter")
     @Extension
     @Selection
     public static class DescriptorImpl extends SCMSourceTraitDescriptor {
@@ -192,7 +129,7 @@ public class RegexSCMOriginFilterTrait extends SCMSourceTrait {
          */
         @Override
         public String getDisplayName() {
-            return Messages.RegexSCMOriginFilterTrait_DisplayName();
+            return Messages.RegexSCMPROriginFilterTrait_DisplayName();
         }
 
         /**

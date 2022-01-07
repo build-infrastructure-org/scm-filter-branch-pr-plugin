@@ -25,94 +25,54 @@
 
 package net.gleske.scmfilter.impl.trait;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.Extension;
-import hudson.util.FormValidation;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMSource;
-import jenkins.scm.api.mixin.ChangeRequestSCMHead;
-import jenkins.scm.api.mixin.TagSCMHead;
-import jenkins.scm.api.trait.SCMHeadPrefilter;
-import jenkins.scm.api.trait.SCMSourceContext;
-import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
-import jenkins.scm.impl.trait.Selection;
+
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
+import hudson.Extension;
+import hudson.util.FormValidation;
+import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.mixin.TagSCMHead;
+import jenkins.scm.api.trait.SCMHeadPrefilter;
+import jenkins.scm.api.trait.SCMSourceContext;
+import jenkins.scm.api.trait.SCMSourceTrait;
+import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
+import jenkins.scm.impl.trait.Selection;
+
 /**
- * Decorates a {@link SCMSource} with a {@link SCMHeadPrefilter} that excludes {@link SCMHead} instances with names that
- * do not match a user supplied regular expression.
+ * Decorates a {@link SCMSource} with a {@link SCMHeadPrefilter} that excludes
+ * {@link SCMHead} instances with names that do not match a user supplied
+ * regular expression.
  *
  * @since 0.1
  */
-public class RegexSCMHeadFilterTrait extends SCMSourceTrait {
-
-    /**
-     * The branch regular expression.
-     */
-    @NonNull
-    private final String regex;
+public class RegexSCMTagFilterTrait extends SCMSourceTrait {
 
     /**
      * The tag regular expression.
      */
-    @NonNull
     private final String tagRegex;
-
-    /**
-     * The compiled branch {@link Pattern}.
-     */
-    @CheckForNull
-    private transient Pattern pattern;
 
     /**
      * The compiled tag {@link Pattern}.
      */
-    @CheckForNull
     private transient Pattern tagPattern;
 
     /**
      * Stapler constructor.
-     *
-     * @param regex the branch regular expression.
-     * @param tagRegex the tag regular expression.
+     * 
+     * @param tagRegex The tag regular expression
      */
     @DataBoundConstructor
-    public RegexSCMHeadFilterTrait(@NonNull String regex, @NonNull String tagRegex) {
-        pattern = Pattern.compile(regex);
-        this.regex = regex;
-        tagPattern = Pattern.compile(tagRegex);
+    public RegexSCMTagFilterTrait(String tagRegex) {
         this.tagRegex = tagRegex;
-    }
-
-    /**
-     * Deprecated constructor kept around for compatibility and migration.
-     *
-     * @param regex the regular expression.
-     */
-    @Deprecated
-    public RegexSCMHeadFilterTrait(@NonNull String regex) {
-        pattern = Pattern.compile(regex);
-        this.regex = regex;
-        tagPattern = Pattern.compile("(?!.*)");
-        this.tagRegex = "(?!.*)";
-    }
-
-    /**
-     * Gets the branch regular expression.
-     *
-     * @return the branch regular expression.
-     */
-    @NonNull
-    public String getRegex() {
-        return regex;
+        this.tagPattern = Pattern.compile(tagRegex);
     }
 
     /**
@@ -120,32 +80,16 @@ public class RegexSCMHeadFilterTrait extends SCMSourceTrait {
      *
      * @return the tag regular expression.
      */
-    @NonNull
     public String getTagRegex() {
         return tagRegex;
     }
 
     /**
-     * Gets the compiled branch {@link Pattern}.
+     * Gets the compiled tag pattern.
      *
-     * @return the compiled branch {@link Pattern}.
+     * @return the compiled tag pattern.
      */
-    @NonNull
-    private Pattern getPattern() {
-        if (pattern == null) {
-            // idempotent
-            pattern = Pattern.compile(regex);
-        }
-        return pattern;
-    }
-
-    /**
-     * Gets the compiled tag {@link Pattern}.
-     *
-     * @return the compiled tag {@link Pattern}.
-     */
-    @NonNull
-    private Pattern getTagPattern() {
+    public Pattern getTagPattern() {
         if (tagPattern == null) {
             // idempotent
             tagPattern = Pattern.compile(tagRegex);
@@ -160,24 +104,18 @@ public class RegexSCMHeadFilterTrait extends SCMSourceTrait {
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         context.withPrefilter(new SCMHeadPrefilter() {
             @Override
-            public boolean isExcluded(@NonNull SCMSource source, @NonNull SCMHead head) {
-                if (head instanceof ChangeRequestSCMHead) {
-                    head = ((ChangeRequestSCMHead)head).getTarget();
+            public boolean isExcluded(SCMSource source, SCMHead head) {
+                if (head instanceof TagSCMHead) {
+                    // tag
+                    return !getTagPattern().matcher(head.getName()).matches();
                 }
 
-                if (head instanceof TagSCMHead) {
-                    return !getTagPattern().matcher(head.getName()).matches();
-                } else {
-                    return !getPattern().matcher(head.getName()).matches();
-                }
+                return false;
             }
         });
     }
 
-    /**
-     * Our descriptor.
-     */
-    @Symbol("headRegexFilterWithPR")
+    @Symbol("RegexSCMTagFilter")
     @Extension
     @Selection
     public static class DescriptorImpl extends SCMSourceTraitDescriptor {
@@ -187,7 +125,7 @@ public class RegexSCMHeadFilterTrait extends SCMSourceTrait {
          */
         @Override
         public String getDisplayName() {
-            return Messages.RegexSCMHeadFilterTrait_DisplayName();
+            return Messages.RegexSCMTagFilterTrait_DisplayName();
         }
 
         /**
@@ -196,7 +134,7 @@ public class RegexSCMHeadFilterTrait extends SCMSourceTrait {
          * @param value the regular expression.
          * @return the validation results.
          */
-        @Restricted(NoExternalUse.class) // stapler
+        @Restricted(NoExternalUse.class)
         public FormValidation doCheckRegex(@QueryParameter String value) {
             try {
                 Pattern.compile(value);
@@ -206,4 +144,5 @@ public class RegexSCMHeadFilterTrait extends SCMSourceTrait {
             }
         }
     }
+
 }

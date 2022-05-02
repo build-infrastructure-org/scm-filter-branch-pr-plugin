@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>scm-filter-branch-pr</artifactId>
-    <version>1.0.1</version>
+    <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
 
     <name>SCM Filter Branch PR Plugin</name>
@@ -37,6 +37,8 @@
     </scm>
 
     <properties>
+        <revision>0.6</revision>
+        <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
         <jenkins.version>2.60.1</jenkins.version>
         <scm-api.version>2.2.2</scm-api.version>
